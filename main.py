@@ -4,9 +4,14 @@ from playhouse.shortcuts import model_to_dict, IntegrityError
 
 from calculations import *
 from database import Station, Observation, clear_db
+from ml import make_prediction_agg, serialize_model, train_model
 from schemas import *
+from utils import log
 
 app = FastAPI()
+
+AGG_OBSERVATION_SAMPLE_SIZE = 5
+AGG_OBSERVATION_SAMPLE_P = 0.5
 
 
 @app.get("/")
@@ -38,32 +43,49 @@ def station_set_training(station_name: str, enabled: bool):
     if station is None:
         raise HTTPException(404, 'station not found')
     else:
+        log.info(f'Setting training enabled: {enabled} for {station}')
         station.is_training = enabled
+        station.save()
+        if not enabled:
+            model = train_model(station)
+            station.trained_model = serialize_model(model)
+            station.save()
         return {'status': 'ok'}
 
 
 @app.post("/make_observation")
 async def make_observation(observation_data: ObservationCreationSchema):
-    t = time()
-    station = Station.get_or_none(observation_data.station_name)
+    station = Station.get_or_none(Station.name == observation_data.station_name)
     if station is None:
         raise HTTPException(404, 'station not found')
-    d = Observation.create(station=station.name,
-                           is_training=station.is_training,
-                           time=observation_data.time or datetime.now(),
-                           sample_frequency=observation_data.sample_frequency,
-                           sample_count=len(observation_data.sample_data),
-                           sample_data=observation_data.sample_data,
-                           rms=calc_rms(observation_data.sample_data),
-                           crest=calc_crest(observation_data.sample_data),
-                           peak_to_peak=calc_peak_to_peak(observation_data.sample_data),
-                           kurtosis=calc_kurtosis(observation_data.sample_data))
-    print(time() - t)
-    return {'ok': True}
+    new_observation = Observation.create(station=station.name,
+                                         is_training=station.is_training,
+                                         time=observation_data.time or datetime.now(),
+                                         sample_frequency=observation_data.sample_frequency,
+                                         sample_count=len(observation_data.sample_data),
+                                         sample_data=observation_data.sample_data,
+                                         rms=calc_rms(observation_data.sample_data),
+                                         crest=calc_crest(observation_data.sample_data),
+                                         peak_to_peak=calc_peak_to_peak(observation_data.sample_data),
+                                         kurtosis=calc_kurtosis(observation_data.sample_data))
+    if not station.is_training:
+        # We get a few previous datapoints in order to make N predictions instead of just 1, which
+        # may be subject to noise
+        observations_select = Observation.select().where(Observation.station == station). \
+            order_by(Observation.time.desc()).limit(AGG_OBSERVATION_SAMPLE_SIZE)
+        observations = list(observations_select)
+        anomaly_detected = make_prediction_agg(observations, AGG_OBSERVATION_SAMPLE_P)
+        new_observation.is_anomaly = anomaly_detected
+        new_observation.save()
+        return {'anomaly': anomaly_detected}
+    else:
+        log.info(f'Station {station} in training mode; no prediction made')
+        return {'ok': True}
 
 
 @app.post('/clear_db')
 async def do_clear_db():
+    log.info('Clearing DB...')
     clear_db()
     return {'status': 'ok'}
 
