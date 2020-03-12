@@ -9,11 +9,13 @@ from aiohttp import ClientSession, TCPConnector
 from tqdm import tqdm
 from tenacity import retry, stop_after_attempt
 
+IMS_DATASET_DIR = r'G:\BigData\IMS'
+
 
 def load_datasets(folder):
-    for filename in os.listdir(os.path.join(r'G:\BigData\IMS', folder)):
+    for filename in os.listdir(os.path.join(IMS_DATASET_DIR, folder)):
         loaded_dt = datetime.strptime(filename, '%Y.%m.%d.%H.%M.%S')
-        loaded_df = pd.read_csv(os.path.join(r'G:\BigData\IMS', folder, filename), sep='\t',
+        loaded_df = pd.read_csv(os.path.join(IMS_DATASET_DIR, folder, filename), sep='\t',
                                 names=['Ch 1', 'Ch 2', 'Ch 3', 'Ch 4'])
         yield loaded_df, loaded_dt
 
