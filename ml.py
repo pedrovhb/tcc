@@ -8,15 +8,18 @@ from pyod.models.lscp import LSCP
 from pyod.models.pca import PCA
 
 from database import Observation, Station
-
-# make_prediction takes a list of N observations and returns 1 if the prediction for p% of these
-# observations is 1
 from utils import log
+
+loaded_models = {}
 
 
 def make_prediction_agg(observations: List[Observation], p: float) -> int:
     log.info(f'Calculating prediction from {len(observations)} observations (p: {p})')
-    trained_model = dill.loads(observations[0].station.trained_model)
+    if observations[0].station.name in loaded_models:
+        trained_model = loaded_models[observations[0].station.name]
+    else:
+        trained_model = dill.loads(observations[0].station.trained_model)
+        loaded_models[observations[0].station.name] = trained_model
     observation_data = [[obs.rms, obs.peak_to_peak, obs.kurtosis, obs.crest] for obs in observations]
     predictions = trained_model.predict(observation_data)
     positive_ratio = sum(predictions) / len(predictions)

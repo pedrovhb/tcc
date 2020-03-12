@@ -1,5 +1,7 @@
 import asyncio
+import json
 import os
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -22,12 +24,12 @@ host = 'http://localhost:8000'
 # Clears DB, creates stations for each channel in test 2
 async def startup():
     async with ClientSession() as client:
-        # r = await client.post(f'{host}/clear_db')
-        # assert r.status == 200
+        r = await client.post(f'{host}/clear_db')
+        assert r.status == 200
 
         for i in range(1, 4 + 1):
             r = await client.post(f'{host}/create_station', json={
-                'name': f'test_3_ch_{i}',
+                'name': f'test_2_ch_{i}',
                 'description': '',
                 'is_training': True
             })
@@ -38,17 +40,18 @@ async def startup():
 async def post_one(client: ClientSession, channel: str, dt: datetime, df: pd.DataFrame):
     channel_number = channel.split()[1]
     await client.post(f'{host}/make_observation', json={
-        'station_name': f'test_3_ch_{channel_number}',
+        'station_name': f'test_2_ch_{channel_number}',
         'time': dt.timestamp(),
         'sample_frequency': 20000,
         'sample_data': df[channel].values.tolist()
     })
+    insertion_dts.append(time.time())
 
 
 async def disable_training(client: ClientSession, channel: str):
     channel_number = channel.split()[1]
     await client.post(f'{host}/disable_training', params={
-        'station_name': f'test_3_ch_{channel_number}',
+        'station_name': f'test_2_ch_{channel_number}',
     })
 
 
@@ -57,7 +60,7 @@ async def do_input():
 
         disabled_training = False
         tasks = []
-        for df, dt in load_datasets('4th_test'):
+        for df, dt in load_datasets('2nd_test'):
             for channel in df.columns:
                 tasks.append(post_one(client, channel, dt, df))
             if len(tasks) > 200:
@@ -75,4 +78,9 @@ async def main():
     await do_input()
 
 
+insertion_dts = []
+
 asyncio.run(main())
+print(insertion_dts)
+with open(r'insertion_dts', 'w') as fd:
+    json.dump(insertion_dts, fd)

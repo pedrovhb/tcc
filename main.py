@@ -71,7 +71,15 @@ async def make_observation(observation_data: ObservationCreationSchema):
     if not station.is_training:
         # We get a few previous datapoints in order to make N predictions instead of just 1, which
         # may be subject to noise
-        observations_select = Observation.select().where(Observation.station == station). \
+        observations_select = Observation.select(
+            Observation.station,
+            Observation.is_training,
+            Observation.time,
+            Observation.rms,
+            Observation.crest,
+            Observation.peak_to_peak,
+            Observation.kurtosis,
+        ).where(Observation.station == station). \
             order_by(Observation.time.desc()).limit(AGG_OBSERVATION_SAMPLE_SIZE)
         observations = list(observations_select)
         anomaly_detected = make_prediction_agg(observations, AGG_OBSERVATION_SAMPLE_P)
@@ -109,4 +117,4 @@ async def get_station(station_name: str, max_observations: int = 10):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
