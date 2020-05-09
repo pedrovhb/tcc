@@ -4,7 +4,7 @@ from playhouse.postgres_ext import PostgresqlExtDatabase, ArrayField, BlobField
 from utils import log
 
 pg_db = PostgresqlExtDatabase('postgres', user='postgres', password='secret',
-                              host='localhost', port=5432)
+                              host='tcc_timescaledb', port=5432)
 
 
 class BaseModel(Model):

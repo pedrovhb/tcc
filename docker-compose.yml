@@ -14,6 +14,7 @@ services:
     networks:
       - vm_net
     restart: always
+
   grafana:
     container_name: tcc_grafana
     image: grafana/grafana:6.3.5
@@ -23,6 +24,21 @@ services:
       - grafanadata:/var/lib/grafana
     networks:
       - vm_net
+    restart: always
+    depends_on:
+      - timescaledb
+
+  app:
+    container_name: app
+    build: ./service
+    volumes:
+    - ./service:/app
+    - /media/pedro/0504B4841DF0737E/BigData/IMS:/ims_dataset
+    networks:
+      - vm_net
+    command: python main.py
+    depends_on:
+      - timescaledb
     restart: always
 
 volumes:
