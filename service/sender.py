@@ -14,7 +14,9 @@ host = "http://app:8000"
 
 
 def load_datasets(folder):
-    for filename in os.listdir(os.path.join(IMS_DATASET_DIR, folder)):
+    file_list = os.listdir(os.path.join(IMS_DATASET_DIR, folder))
+    file_list.sort()
+    for filename in file_list:
         loaded_dt = datetime.strptime(filename, "%Y.%m.%d.%H.%M.%S")
         loaded_df = pd.read_csv(
             os.path.join(IMS_DATASET_DIR, folder, filename),
