@@ -9,12 +9,16 @@ from aiohttp import ClientSession, TCPConnector
 from tqdm import tqdm
 from tenacity import retry, stop_after_attempt
 
+from calculations import calc_rms, calc_kurtosis, calc_crest, calc_peak_to_peak
+
 IMS_DATASET_DIR = "/ims_dataset"
 host = "http://app:8000"
 
 
 def load_datasets(folder):
-    for filename in os.listdir(os.path.join(IMS_DATASET_DIR, folder)):
+    file_list = os.listdir(os.path.join(IMS_DATASET_DIR, folder))
+    file_list.sort()
+    for filename in file_list:
         loaded_dt = datetime.strptime(filename, "%Y.%m.%d.%H.%M.%S")
         loaded_df = pd.read_csv(
             os.path.join(IMS_DATASET_DIR, folder, filename),
@@ -53,7 +57,11 @@ async def post_one(
             "station_name": f"test_2_ch_{channel_number}",
             "time": dt.timestamp(),
             "sample_frequency": 20000,
-            "sample_data": df[channel].values.tolist(),
+            "sample_count": len(df[channel]),
+            "rms": calc_rms(df[channel].values.tolist()),
+            "crest": calc_crest(df[channel].values.tolist()),
+            "peak_to_peak": calc_peak_to_peak(df[channel].values.tolist()),
+            "kurtosis": calc_kurtosis(df[channel].values.tolist()),
         },
     )
     insertion_dts.append(time.time())
