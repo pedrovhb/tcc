@@ -57,7 +57,7 @@ prometheus-client==0.7.1
 prompt-toolkit==2.0.10
 psycopg2==2.8.3
 pydantic==0.32.2
-Pygments==2.4.2
+Pygments==2.7.4
 pyod==0.7.5
 pyparsing==2.4.2
 pyrsistent==0.15.4
