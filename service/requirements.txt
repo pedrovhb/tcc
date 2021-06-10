@@ -13,7 +13,7 @@ cycler==0.10.0
 decorator==4.4.0
 defusedxml==0.6.0
 entrypoints==0.3
-fastapi==0.42.0
+fastapi==0.65.2
 h11==0.8.1
 idna==2.8
 importlib-metadata==0.23
